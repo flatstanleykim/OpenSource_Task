@@ -41,7 +41,7 @@ do
 			fi;;
 		2)
 			read -p "What do you want to get the team data of league_position[1~20] :" POS
-			pos=$(awk -v POS="$POS" -F',' 'NR==POS {printf("%s %s %.6f\n", NR, $1, $2/($2+$3+$4))}' "$teams")
+			pos=$(awk -v POS="$POS" -F',' '$6==POS {printf("%s %s %.6f\n", $6, $1, $2/($2+$3+$4))}' "$teams")
 			echo "$pos";;
 		
 		3)
@@ -106,11 +106,106 @@ do
 			read -p "Do you want to modify the format of date? (y/n) :" MODIFY
 			if [ $MODIFY = "y" ]
 			then
-				echo "working"
+				i=$(cat "$matches" | awk '{print NR}')
+				touch f1.csv
+				f1=f1.csv
+				for var in $i
+				do
+					if [ $var = 1 ]
+					then
+						first=$(cat "$matches" | head -n 1)
+						echo "$first" >> "$f1"
+						continue
+					fi
+
+					date=$(cat "$matches" | awk -v num="$var" -F',' 'NR==num {print $1}')
+
+					month=$(echo "$date" | awk -F' ' '{print $1}')
+					case $month in
+						Jan)
+							month=01;;
+						Feb)
+							month=02;;
+						Mar)
+							month=03;;
+						Apr)
+							month=04;;
+						May)
+							month=05;;
+						Jun)
+							month=06;;
+						Jul)
+							month=07;;
+						Aug)
+							month=08;;
+						Sep)
+							month=09;;
+						Oct)
+							month=10;;
+						Nov)
+							month=11;;
+						Dec)
+							month=12;;
+						*)
+							echo "not a month";;
+					esac
+					change=$(echo "$date" | awk -v mon="$month" -F' ' '{printf("%s/%s/%s %s",$3, mon, $2, $5)}')
+					new=$(cat "$matches" | awk -v num="$var" -v cha="$change" -F',' 'NR==num {printf("%s,%s,%s,%s,%s,%s,%s", cha, $2, $3, $4, $5, $6, $7)}')
+					echo "$new" >> "$f1"
+				
+				done
+				cp "$f1" "$matches"
+				k=1
+				until [ $k -gt 11 ]
+				do
+					fix=$(cat "$matches" | awk -v n="$k" -F',' 'NR==n {print $1}')
+					echo "$fix"
+					let k=k+1
+				done
+				
 			fi;;
-		6)
+		6)			
+			team=$(cat "$teams" | awk -F',' 'NR!=1&&NR<=11 {print $1}')
+			cnt=1
+			cnt2=11
+			IFS=$'\n'
+			for var in $team
+			do
+				line=$(echo -n "$var" | wc -c)
+				t1=$(cat "$teams" | awk -v i="$cnt" -F',' 'NR==i+1 {print $1}')
+				t2=$(cat "$teams" | awk -v i="$cnt2" -F',' 'NR==i+1 {print $1}')
+				let line=30-line
+				if [ $cnt -lt 10 ]
+				then
+					cnt=" $cnt"
+				fi
+				echo "$cnt) $t1$(printf '%*s' $line)$cnt2) $t2"
+				let cnt=cnt+1
+				let cnt2=cnt2+1				
+
+			done			
 			read -p "Enter your team number :" TEAMNUM
-			echo "$TEAMNUM";;
+			winteam=$(cat "$teams" | awk -v n="$TEAMNUM" -F',' 'NR==n+1 {print $1}')
+			
+			winscore=$(cat "$matches" | awk -v t="$winteam" -F',' '$3==t {print $5-$6}')
+			
+			max=-99
+			for var2 in $winscore
+			do
+				if [ $var2 -gt $max ]
+				then
+					max=$var2
+				fi	
+			done
+			winrow=$(cat "$matches" | awk -v t="$winteam" -v m="$max" -F',' '$3==t&&($5-$6)==m {printf("\n%s\n%s %s vs %s %s\n", $1, $3, $5, $6, $4)}')
+			echo "$winrow"
+			
+
+
+
+			;;
+		
+
 		7)
 			echo "Bye!"
 			echo ""
